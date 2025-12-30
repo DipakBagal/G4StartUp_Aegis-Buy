@@ -9,8 +9,17 @@ from dotenv import load_dotenv
 
 # --- INITIALIZATION & AUTH ---
 load_dotenv()
-supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# Support both local .env and Streamlit secrets
+def get_secret(key):
+    """Get secret from Streamlit secrets or environment variables"""
+    try:
+        return st.secrets[key]
+    except:
+        return os.getenv(key)
+
+supabase: Client = create_client(get_secret("SUPABASE_URL"), get_secret("SUPABASE_KEY"))
+genai.configure(api_key=get_secret("GEMINI_API_KEY"))
 
 # --- STATE DEFINITION ---
 class AgentState(TypedDict):
@@ -35,7 +44,7 @@ def extract_asin(url: str) -> str:
 def fetch_rainforest_product(asin: str):
     """Calls Rainforest API for real-time Amazon pricing and specs."""
     params = {
-        'api_key': os.getenv("RAINFOREST_API_KEY"),
+        'api_key': get_secret("RAINFOREST_API_KEY"),
         'type': 'product',
         'amazon_domain': 'amazon.com',
         'asin': asin
@@ -57,7 +66,7 @@ def fetch_serp_sentiment(product_title: str):
     params = {
         "engine": "google",
         "q": f"{product_title} reddit reviews issues",
-        "api_key": os.getenv("SERP_API_KEY")
+        "api_key": get_secret("SERP_API_KEY")
     }
     response = requests.get("https://serpapi.com/search", params)
     results = response.json().get("organic_results", [])
