@@ -1,6 +1,6 @@
 streamlit
 langgraph
-google-generativeai>=0.3.0
+google-generativeai>=0.8.0
 supabase
 python-dotenv
 requests

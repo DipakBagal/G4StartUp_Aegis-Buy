@@ -104,11 +104,8 @@ def researcher_node(state: AgentState):
 
 def strategist_node(state: AgentState):
     try:
-        # Use REST API directly as fallback
-        import requests
-        
-        api_key = get_secret("GEMINI_API_KEY")
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
+        # Use Gemini 1.5 Flash model (correct model name for current API)
+        model = genai.GenerativeModel('gemini-1.5-flash')
         
         prompt = f"""
 Act as a Fiduciary Shopping Agent. 
@@ -126,21 +123,8 @@ Reasoning Pattern:
 Provide a bold 'BUY', 'WATCH', or 'WAIT' verdict and justify it with 3 bullet points.
 """
         
-        payload = {
-            "contents": [{
-                "parts": [{"text": prompt}]
-            }]
-        }
-        
-        response = requests.post(url, json=payload)
-        
-        if response.status_code == 200:
-            result = response.json()
-            verdict = result['candidates'][0]['content']['parts'][0]['text']
-            return {"final_verdict": verdict}
-        else:
-            error_msg = response.json().get('error', {}).get('message', 'Unknown error')
-            return {"final_verdict": f"⚠️ API Error: {error_msg}"}
+        response = model.generate_content(prompt)
+        return {"final_verdict": response.text}
     except Exception as e:
         return {"final_verdict": f"⚠️ Error generating verdict: {str(e)}. Please check your API configuration."}
 
