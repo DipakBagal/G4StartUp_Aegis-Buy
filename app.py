@@ -13,13 +13,23 @@ load_dotenv()
 # Support both local .env and Streamlit secrets
 def get_secret(key):
     """Get secret from Streamlit secrets or environment variables"""
-    try:
+    # Try Streamlit secrets first (for cloud deployment)
+    if hasattr(st, 'secrets') and key in st.secrets:
         return st.secrets[key]
-    except:
-        return os.getenv(key)
+    # Fall back to environment variables (for local development)
+    return os.getenv(key)
 
-supabase: Client = create_client(get_secret("SUPABASE_URL"), get_secret("SUPABASE_KEY"))
-genai.configure(api_key=get_secret("GEMINI_API_KEY"))
+# Initialize clients
+supabase_url = get_secret("SUPABASE_URL")
+supabase_key = get_secret("SUPABASE_KEY")
+gemini_key = get_secret("GEMINI_API_KEY")
+
+if not supabase_url or not supabase_key:
+    st.error("⚠️ Supabase credentials not configured. Please add them to Streamlit secrets.")
+    st.stop()
+
+supabase: Client = create_client(supabase_url, supabase_key)
+genai.configure(api_key=gemini_key)
 
 # --- STATE DEFINITION ---
 class AgentState(TypedDict):
