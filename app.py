@@ -36,8 +36,14 @@ supabase: Client = create_client(supabase_url, supabase_key)
 
 try:
     genai.configure(api_key=gemini_key)
-    # Test the API key with a simple model initialization
-    test_model = genai.GenerativeModel('gemini-1.5-flash')
+    # Test the API key - try different model names
+    try:
+        test_model = genai.GenerativeModel('gemini-pro')
+    except:
+        try:
+            test_model = genai.GenerativeModel('models/gemini-pro')
+        except:
+            pass  # Will catch in actual usage
 except Exception as e:
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.info("Please check your GEMINI_API_KEY in Streamlit secrets.")
@@ -106,7 +112,18 @@ def researcher_node(state: AgentState):
 
 def strategist_node(state: AgentState):
     try:
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        # Try multiple model names for compatibility
+        model = None
+        for model_name in ['gemini-pro', 'models/gemini-pro', 'gemini-1.5-flash', 'models/gemini-1.5-flash']:
+            try:
+                model = genai.GenerativeModel(model_name)
+                break
+            except:
+                continue
+        
+        if model is None:
+            return {"final_verdict": "⚠️ Could not initialize Gemini model. Please check your API key."}
+        
         # The Decision Logic
         prompt = f"""
     Act as a Fiduciary Shopping Agent. 
