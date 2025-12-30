@@ -110,8 +110,8 @@ def strategist_node(state: AgentState):
         
         api_key = get_secret("GEMINI_API_KEY")
         
-        # Use gemini-2.5-flash-exp (has available quota)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp:generateContent?key={api_key}"
+        # Use gemini-2.5-flash (standard stable model with quota)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
         
         prompt = f"""
 Act as a Fiduciary Shopping Agent. 
