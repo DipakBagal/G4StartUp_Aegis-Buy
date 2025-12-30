@@ -55,13 +55,29 @@ class AgentState(TypedDict):
 def extract_asin(url: str) -> tuple:
     """Extracts ASIN and domain from Amazon URL."""
     try:
-        # Detect domain
+        # Detect domain - check for all supported Amazon domains
         if "amazon.in" in url:
             domain = "amazon.in"
         elif "amazon.co.uk" in url:
             domain = "amazon.co.uk"
         elif "amazon.ca" in url:
             domain = "amazon.ca"
+        elif "amazon.de" in url:
+            domain = "amazon.de"
+        elif "amazon.fr" in url:
+            domain = "amazon.fr"
+        elif "amazon.es" in url:
+            domain = "amazon.es"
+        elif "amazon.it" in url:
+            domain = "amazon.it"
+        elif "amazon.com.au" in url:
+            domain = "amazon.com.au"
+        elif "amazon.co.jp" in url:
+            domain = "amazon.co.jp"
+        elif "amazon.com.mx" in url:
+            domain = "amazon.com.mx"
+        elif "amazon.com.br" in url:
+            domain = "amazon.com.br"
         else:
             domain = "amazon.com"
         
@@ -90,6 +106,8 @@ def get_currency_info(domain: str) -> dict:
         "amazon.it": {"symbol": "€", "code": "EUR"},
         "amazon.com.au": {"symbol": "AU$", "code": "AUD"},
         "amazon.co.jp": {"symbol": "¥", "code": "JPY"},
+        "amazon.com.mx": {"symbol": "MX$", "code": "MXN"},
+        "amazon.com.br": {"symbol": "R$", "code": "BRL"},
     }
     return currency_map.get(domain, {"symbol": "$", "code": "USD"})
 
