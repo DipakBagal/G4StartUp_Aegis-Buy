@@ -52,21 +52,37 @@ class AgentState(TypedDict):
 
 # --- AGENT TOOLS (REAL DATA LINKS) ---
 
-def extract_asin(url: str) -> str:
-    """Extracts ASIN from a standard Amazon URL."""
+def extract_asin(url: str) -> tuple:
+    """Extracts ASIN and domain from Amazon URL."""
     try:
-        if "/dp/" in url: return url.split("/dp/")[1].split("/")[0].split("?")[0]
-        if "/gp/product/" in url: return url.split("/gp/product/")[1].split("/")[0].split("?")[0]
-        return "B000000000"
+        # Detect domain
+        if "amazon.in" in url:
+            domain = "amazon.in"
+        elif "amazon.co.uk" in url:
+            domain = "amazon.co.uk"
+        elif "amazon.ca" in url:
+            domain = "amazon.ca"
+        else:
+            domain = "amazon.com"
+        
+        # Extract ASIN
+        if "/dp/" in url: 
+            asin = url.split("/dp/")[1].split("/")[0].split("?")[0]
+        elif "/gp/product/" in url: 
+            asin = url.split("/gp/product/")[1].split("/")[0].split("?")[0]
+        else:
+            asin = "B000000000"
+            
+        return asin, domain
     except:
-        return "B000000000"
+        return "B000000000", "amazon.com"
 
-def fetch_rainforest_product(asin: str):
+def fetch_rainforest_product(asin: str, domain: str = "amazon.com"):
     """Calls Rainforest API for real-time Amazon pricing and specs."""
     params = {
         'api_key': get_secret("RAINFOREST_API_KEY"),
         'type': 'product',
-        'amazon_domain': 'amazon.com',
+        'amazon_domain': domain,
         'asin': asin
     }
     
@@ -75,45 +91,64 @@ def fetch_rainforest_product(asin: str):
         data = response.json()
         product = data.get('product', {})
         
+        # Check availability first
+        availability = product.get("buybox_winner", {}).get("availability", {})
+        is_available = availability.get("type") == "in_stock"
+        availability_msg = availability.get("raw", "Unknown availability")
+        
         # Try multiple ways to get the price
         current_price = 0
         
         # Method 1: Buybox winner price
-        if product.get("buybox_winner"):
-            buybox = product["buybox_winner"]
-            if buybox.get("price", {}).get("value"):
-                current_price = buybox["price"]["value"]
-            elif buybox.get("price", {}).get("raw"):
-                # Sometimes it's in raw format like "$99.99"
-                raw_price = buybox["price"]["raw"].replace("$", "").replace(",", "")
-                try:
-                    current_price = float(raw_price)
-                except:
-                    pass
+        if product.get("buybox_winner", {}).get("price"):
+            price_obj = product["buybox_winner"]["price"]
+            if isinstance(price_obj, dict):
+                if price_obj.get("value"):
+                    current_price = price_obj["value"]
+                elif price_obj.get("raw"):
+                    # Sometimes it's in raw format like "$99.99"
+                    raw_price = str(price_obj["raw"]).replace("$", "").replace(",", "").replace("₹", "")
+                    try:
+                        current_price = float(raw_price)
+                    except:
+                        pass
+            elif isinstance(price_obj, (int, float)):
+                current_price = price_obj
         
-        # Method 2: Main product price
-        if current_price == 0 and product.get("price"):
-            if isinstance(product["price"], dict):
-                current_price = product["price"].get("value", 0)
-            elif isinstance(product["price"], (int, float)):
-                current_price = product["price"]
-        
-        # Method 3: First offer price
+        # Method 2: Check offers array
         if current_price == 0 and product.get("buybox_winner", {}).get("offers"):
             offers = product["buybox_winner"]["offers"]
             if offers and len(offers) > 0:
-                current_price = offers[0].get("price", {}).get("value", 0)
+                first_offer = offers[0]
+                if first_offer.get("price", {}).get("value"):
+                    current_price = first_offer["price"]["value"]
+        
+        # Method 3: Look in bestsellers_rank for typical price (if mentioned)
+        # Some products have price in different places when unavailable
         
         # Get RRP/MSRP
         rrp = 0
-        if product.get("list_price"):
-            rrp = product["list_price"].get("value", 0)
-        elif product.get("variants") and len(product["variants"]) > 0:
-            rrp = product["variants"][0].get("list_price", {}).get("value", 0)
         
-        # If no RRP found, estimate it as 20% higher than current price
+        # Try list_price first
+        if product.get("list_price", {}).get("value"):
+            rrp = product["list_price"]["value"]
+        
+        # Try variants
+        if rrp == 0 and product.get("variants"):
+            for variant in product["variants"]:
+                if variant.get("list_price", {}).get("value"):
+                    rrp = variant["list_price"]["value"]
+                    break
+        
+        # If product is unavailable but we found no price, check last known price patterns
+        # (some APIs store historical price data)
+        
+        # If no RRP found and we have current price, estimate RRP
         if rrp == 0 and current_price > 0:
             rrp = current_price * 1.2
+        
+        # If both are 0, mark as unavailable
+        product_status = "available" if is_available and current_price > 0 else "unavailable"
         
         return {
             "title": product.get("title", "Unknown Product"),
@@ -121,6 +156,8 @@ def fetch_rainforest_product(asin: str):
             "rrp": rrp,
             "rating": product.get("rating", 0),
             "image": product.get("main_image", {}).get("link", ""),
+            "availability": availability_msg,
+            "status": product_status,
             "raw_data": product  # Keep for debugging
         }
     except Exception as e:
@@ -130,6 +167,8 @@ def fetch_rainforest_product(asin: str):
             "rrp": 0,
             "rating": 0,
             "image": "",
+            "availability": "Error",
+            "status": "error",
             "error": str(e)
         }
 
@@ -149,8 +188,8 @@ def fetch_serp_sentiment(product_title: str):
 # --- AGENT NODES (REASONING) ---
 
 def researcher_node(state: AgentState):
-    asin = extract_asin(state["url"])
-    product_info = fetch_rainforest_product(asin)
+    asin, domain = extract_asin(state["url"])
+    product_info = fetch_rainforest_product(asin, domain)
     sentiment = fetch_serp_sentiment(product_info["title"])
     return {"asin": asin, "product_data": product_info, "sentiment_data": sentiment}
 
@@ -250,10 +289,14 @@ if st.button("🚀 Launch Sourcing Agent"):
                 st.subheader("Agent Fiduciary Verdict")
                 st.markdown(result["final_verdict"])
                 
+                # Show availability warning
+                if result['product_data'].get('status') == 'unavailable':
+                    st.warning(f"⚠️ Product Status: {result['product_data'].get('availability', 'Currently unavailable')}")
+                
                 # Metric Cards
                 m1, m2 = st.columns(2)
-                m1.metric("Current Price", f"${result['product_data']['current_price']}")
-                m2.metric("RRP/MSRP", f"${result['product_data']['rrp']}")
+                m1.metric("Current Price", f"${result['product_data']['current_price']}" if result['product_data']['current_price'] > 0 else "N/A")
+                m2.metric("RRP/MSRP", f"${result['product_data']['rrp']}" if result['product_data']['rrp'] > 0 else "N/A")
                 
                 # Debug info
                 if result['product_data']['current_price'] == 0:
