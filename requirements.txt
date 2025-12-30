@@ -1,0 +1,6 @@
+streamlit
+langgraph
+google-generativeai
+supabase
+python-dotenv
+requests

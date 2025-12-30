@@ -1,0 +1,149 @@
+import os
+import streamlit as st
+import requests
+from typing import TypedDict, List
+from langgraph.graph import StateGraph, END
+from supabase import create_client, Client
+import google.generativeai as genai
+from dotenv import load_dotenv
+
+# --- INITIALIZATION & AUTH ---
+load_dotenv()
+supabase: Client = create_client(os.getenv("SUPABASE_URL"), os.getenv("SUPABASE_KEY"))
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+
+# --- STATE DEFINITION ---
+class AgentState(TypedDict):
+    url: str
+    asin: str
+    urgency: int
+    product_data: dict
+    sentiment_data: str
+    final_verdict: str
+
+# --- AGENT TOOLS (REAL DATA LINKS) ---
+
+def extract_asin(url: str) -> str:
+    """Extracts ASIN from a standard Amazon URL."""
+    try:
+        if "/dp/" in url: return url.split("/dp/")[1].split("/")[0].split("?")[0]
+        if "/gp/product/" in url: return url.split("/gp/product/")[1].split("/")[0].split("?")[0]
+        return "B000000000"
+    except:
+        return "B000000000"
+
+def fetch_rainforest_product(asin: str):
+    """Calls Rainforest API for real-time Amazon pricing and specs."""
+    params = {
+        'api_key': os.getenv("RAINFOREST_API_KEY"),
+        'type': 'product',
+        'amazon_domain': 'amazon.com',
+        'asin': asin
+    }
+    response = requests.get('https://api.rainforestapi.com/request', params)
+    data = response.json()
+    product = data.get('product', {})
+    
+    return {
+        "title": product.get("title", "Unknown Product"),
+        "current_price": product.get("buybox_winner", {}).get("price", {}).get("value", 0),
+        "rrp": product.get("variants", [{}])[0].get("rrp", {}).get("value", 0), # Simplified for MVP
+        "rating": product.get("rating", 0),
+        "image": product.get("main_image", {}).get("link", "")
+    }
+
+def fetch_serp_sentiment(product_title: str):
+    """Uses SerpApi to find Reddit/Tech forum consensus on the product."""
+    params = {
+        "engine": "google",
+        "q": f"{product_title} reddit reviews issues",
+        "api_key": os.getenv("SERP_API_KEY")
+    }
+    response = requests.get("https://serpapi.com/search", params)
+    results = response.json().get("organic_results", [])
+    # Aggregate snippets for the LLM to analyze
+    snippets = [res.get("snippet", "") for res in results[:3]]
+    return " | ".join(snippets)
+
+# --- AGENT NODES (REASONING) ---
+
+def researcher_node(state: AgentState):
+    asin = extract_asin(state["url"])
+    product_info = fetch_rainforest_product(asin)
+    sentiment = fetch_serp_sentiment(product_info["title"])
+    return {"asin": asin, "product_data": product_info, "sentiment_data": sentiment}
+
+def strategist_node(state: AgentState):
+    model = genai.GenerativeModel('gemini-1.5-pro')
+    # The Decision Logic
+    prompt = f"""
+    Act as a Fiduciary Shopping Agent. 
+    Product: {state['product_data']['title']}
+    Current Price: ${state['product_data']['current_price']}
+    MSRP/RRP: ${state['product_data']['rrp']}
+    User Urgency: {state['urgency']}/10
+    Web Sentiment: {state['sentiment_data']}
+
+    Reasoning Pattern:
+    1. Is the current price significantly below RRP?
+    2. Does web sentiment suggest a batch defect or a new model release?
+    3. Can the user wait based on their urgency?
+
+    Provide a bold 'BUY', 'WATCH', or 'WAIT' verdict and justify it with 3 bullet points.
+    """
+    response = model.generate_content(prompt)
+    return {"final_verdict": response.text}
+
+# --- GRAPH ORCHESTRATION ---
+builder = StateGraph(AgentState)
+builder.add_node("researcher", researcher_node)
+builder.add_node("strategist", strategist_node)
+builder.set_entry_point("researcher")
+builder.add_edge("researcher", "strategist")
+builder.add_edge("strategist", END)
+aegis_engine = builder.compile()
+
+# --- STREAMLIT PRODUCTION UI ---
+st.set_page_config(page_title="Aegis-Buy Agent", page_icon="🛡️", layout="wide")
+
+st.title("🛡️ Aegis-Buy: Agentic AI Procurement")
+st.write("Ensuring you never buy at the peak. Powered by Gemini 1.5 Pro.")
+
+with st.sidebar:
+    st.header("🛒 Mission Parameters")
+    urgency = st.select_slider("Procurement Urgency", options=range(1,11), value=5)
+    st.info("High Urgency (8-10) prioritizes speed. Low Urgency (1-3) prioritizes the absolute floor price.")
+
+target_url = st.text_input("Paste Amazon Product Link:", placeholder="https://www.amazon.com/dp/B0...")
+
+if st.button("🚀 Launch Sourcing Agent"):
+    if not target_url:
+        st.error("Please provide a product URL.")
+    else:
+        with st.spinner("Agent 'Aegis' is researching price bands and social sentiment..."):
+            # Execute the Graph
+            result = aegis_engine.invoke({"url": target_url, "urgency": urgency})
+            
+            # Persist Result to Supabase
+            supabase.table("price_missions").insert({
+                "asin": result["asin"],
+                "verdict": result["final_verdict"],
+                "current_price": result["product_data"]["current_price"],
+                "urgency": urgency
+            }).execute()
+
+            # Display Output
+            st.divider()
+            col_img, col_info = st.columns([1, 2])
+            
+            with col_img:
+                st.image(result["product_data"]["image"], caption=result["product_data"]["title"])
+            
+            with col_info:
+                st.subheader("Agent Fiduciary Verdict")
+                st.markdown(result["final_verdict"])
+                
+                # Metric Cards
+                m1, m2 = st.columns(2)
+                m1.metric("Current Price", f"${result['product_data']['current_price']}")
+                m2.metric("RRP/MSRP", f"${result['product_data']['rrp']}")
