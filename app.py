@@ -104,14 +104,14 @@ def researcher_node(state: AgentState):
 
 def strategist_node(state: AgentState):
     try:
-        # Use REST API with models that are confirmed to work
+        # Use REST API with models that have available quota
         import requests
         import json
         
         api_key = get_secret("GEMINI_API_KEY")
         
-        # Use gemini-2.0-flash (confirmed available from list_models.py)
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
+        # Use gemini-2.5-flash-exp (has available quota)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-exp:generateContent?key={api_key}"
         
         prompt = f"""
 Act as a Fiduciary Shopping Agent. 
