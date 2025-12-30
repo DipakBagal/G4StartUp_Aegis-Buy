@@ -28,8 +28,20 @@ if not supabase_url or not supabase_key:
     st.error("⚠️ Supabase credentials not configured. Please add them to Streamlit secrets.")
     st.stop()
 
+if not gemini_key:
+    st.error("⚠️ Gemini API key not configured. Please add it to Streamlit secrets.")
+    st.stop()
+
 supabase: Client = create_client(supabase_url, supabase_key)
-genai.configure(api_key=gemini_key)
+
+try:
+    genai.configure(api_key=gemini_key)
+    # Test the API key with a simple model initialization
+    test_model = genai.GenerativeModel('gemini-1.5-flash')
+except Exception as e:
+    st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
+    st.info("Please check your GEMINI_API_KEY in Streamlit secrets.")
+    st.stop()
 
 # --- STATE DEFINITION ---
 class AgentState(TypedDict):
@@ -93,9 +105,10 @@ def researcher_node(state: AgentState):
     return {"asin": asin, "product_data": product_info, "sentiment_data": sentiment}
 
 def strategist_node(state: AgentState):
-    model = genai.GenerativeModel('gemini-1.5-pro')
-    # The Decision Logic
-    prompt = f"""
+    try:
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        # The Decision Logic
+        prompt = f"""
     Act as a Fiduciary Shopping Agent. 
     Product: {state['product_data']['title']}
     Current Price: ${state['product_data']['current_price']}
@@ -110,8 +123,10 @@ def strategist_node(state: AgentState):
 
     Provide a bold 'BUY', 'WATCH', or 'WAIT' verdict and justify it with 3 bullet points.
     """
-    response = model.generate_content(prompt)
-    return {"final_verdict": response.text}
+        response = model.generate_content(prompt)
+        return {"final_verdict": response.text}
+    except Exception as e:
+        return {"final_verdict": f"⚠️ Error generating verdict: {str(e)}. Please check your API configuration."}
 
 # --- GRAPH ORCHESTRATION ---
 builder = StateGraph(AgentState)
@@ -126,7 +141,7 @@ aegis_engine = builder.compile()
 st.set_page_config(page_title="Aegis-Buy Agent", page_icon="🛡️", layout="wide")
 
 st.title("🛡️ Aegis-Buy: Agentic AI Procurement")
-st.write("Ensuring you never buy at the peak. Powered by Gemini 1.5 Pro.")
+st.write("Ensuring you never buy at the peak. Powered by Google Gemini AI.")
 
 with st.sidebar:
     st.header("🛒 Mission Parameters")
