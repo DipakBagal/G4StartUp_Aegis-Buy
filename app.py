@@ -104,14 +104,14 @@ def researcher_node(state: AgentState):
 
 def strategist_node(state: AgentState):
     try:
-        # Use REST API directly with correct v1 endpoint (not v1beta)
+        # Use REST API with models that are confirmed to work
         import requests
         import json
         
         api_key = get_secret("GEMINI_API_KEY")
         
-        # Use v1 endpoint (more stable than v1beta)
-        url = f"https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key={api_key}"
+        # Use gemini-2.0-flash (confirmed available from list_models.py)
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={api_key}"
         
         prompt = f"""
 Act as a Fiduciary Shopping Agent. 
@@ -143,18 +143,9 @@ Provide a bold 'BUY', 'WATCH', or 'WAIT' verdict and justify it with 3 bullet po
             verdict = result['candidates'][0]['content']['parts'][0]['text']
             return {"final_verdict": verdict}
         else:
-            # Fallback: Try v1beta with different model
-            url_beta = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
-            response = requests.post(url_beta, headers=headers, data=json.dumps(payload), timeout=30)
-            
-            if response.status_code == 200:
-                result = response.json()
-                verdict = result['candidates'][0]['content']['parts'][0]['text']
-                return {"final_verdict": verdict}
-            else:
-                error_data = response.json() if response.text else {}
-                error_msg = error_data.get('error', {}).get('message', f'HTTP {response.status_code}')
-                return {"final_verdict": f"⚠️ API Error: {error_msg}"}
+            error_data = response.json() if response.text else {}
+            error_msg = error_data.get('error', {}).get('message', f'HTTP {response.status_code}')
+            return {"final_verdict": f"⚠️ API Error: {error_msg}"}
     except Exception as e:
         return {"final_verdict": f"⚠️ Error generating verdict: {str(e)}. Please check your API configuration."}
 
