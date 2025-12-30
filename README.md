@@ -1,6 +1,35 @@
 # 🛡️ Aegis-Buy: Agentic AI Procurement Assistant
 
-An intelligent procurement agent powered by Google's Gemini 1.5 Pro that helps you make informed purchasing decisions on Amazon products. Aegis-Buy analyzes pricing trends, web sentiment, and market conditions to provide fiduciary recommendations on whether to buy now or wait for better deals.
+> **🏆 Built for Google for Startups - Scaler Showcase**  
+> **🔗 Live Demo:** https://g4startup-aegis-buy.streamlit.app
+
+An intelligent multi-agent procurement system powered by Google's Gemini 2.5 Flash that helps you make informed purchasing decisions on Amazon products. Aegis-Buy analyzes pricing trends, web sentiment, and market conditions to provide fiduciary recommendations on whether to buy now or wait for better deals.
+
+---
+
+## 🎯 The Problem
+
+Online shoppers face three critical challenges:
+1. **Price Volatility** - Amazon prices fluctuate multiple times per day
+2. **Timing Uncertainty** - Not knowing if it's the "right time" to buy
+3. **Information Overload** - Reviews scattered across Reddit, forums, and review sites
+
+Traditional price comparison tools are **calculators**, not **advisors**. They show you numbers but don't tell you **WHEN** to act.
+
+---
+
+## 💡 The Solution
+
+Aegis-Buy is a **multi-agent AI system** that acts as your fiduciary shopping advisor:
+
+- ✅ **Synthesizes** multiple data sources (price + sentiment + timing)
+- ✅ **Contextualizes** with your purchase urgency
+- ✅ **Recommends** a clear action: **BUY**, **WATCH**, or **WAIT**
+- ✅ **Explains** the reasoning transparently
+
+**Mission:** Ensure you never buy at the peak. 🛡️
+
+---
 
 ## 🌟 Features
 
