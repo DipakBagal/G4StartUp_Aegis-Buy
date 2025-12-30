@@ -36,14 +36,6 @@ supabase: Client = create_client(supabase_url, supabase_key)
 
 try:
     genai.configure(api_key=gemini_key)
-    # Test the API key - try different model names
-    try:
-        test_model = genai.GenerativeModel('gemini-pro')
-    except:
-        try:
-            test_model = genai.GenerativeModel('models/gemini-pro')
-        except:
-            pass  # Will catch in actual usage
 except Exception as e:
     st.error(f"⚠️ Error configuring Gemini API: {str(e)}")
     st.info("Please check your GEMINI_API_KEY in Streamlit secrets.")
@@ -112,36 +104,43 @@ def researcher_node(state: AgentState):
 
 def strategist_node(state: AgentState):
     try:
-        # Try multiple model names for compatibility
-        model = None
-        for model_name in ['gemini-pro', 'models/gemini-pro', 'gemini-1.5-flash', 'models/gemini-1.5-flash']:
-            try:
-                model = genai.GenerativeModel(model_name)
-                break
-            except:
-                continue
+        # Use REST API directly as fallback
+        import requests
         
-        if model is None:
-            return {"final_verdict": "⚠️ Could not initialize Gemini model. Please check your API key."}
+        api_key = get_secret("GEMINI_API_KEY")
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key={api_key}"
         
-        # The Decision Logic
         prompt = f"""
-    Act as a Fiduciary Shopping Agent. 
-    Product: {state['product_data']['title']}
-    Current Price: ${state['product_data']['current_price']}
-    MSRP/RRP: ${state['product_data']['rrp']}
-    User Urgency: {state['urgency']}/10
-    Web Sentiment: {state['sentiment_data']}
+Act as a Fiduciary Shopping Agent. 
+Product: {state['product_data']['title']}
+Current Price: ${state['product_data']['current_price']}
+MSRP/RRP: ${state['product_data']['rrp']}
+User Urgency: {state['urgency']}/10
+Web Sentiment: {state['sentiment_data']}
 
-    Reasoning Pattern:
-    1. Is the current price significantly below RRP?
-    2. Does web sentiment suggest a batch defect or a new model release?
-    3. Can the user wait based on their urgency?
+Reasoning Pattern:
+1. Is the current price significantly below RRP?
+2. Does web sentiment suggest a batch defect or a new model release?
+3. Can the user wait based on their urgency?
 
-    Provide a bold 'BUY', 'WATCH', or 'WAIT' verdict and justify it with 3 bullet points.
-    """
-        response = model.generate_content(prompt)
-        return {"final_verdict": response.text}
+Provide a bold 'BUY', 'WATCH', or 'WAIT' verdict and justify it with 3 bullet points.
+"""
+        
+        payload = {
+            "contents": [{
+                "parts": [{"text": prompt}]
+            }]
+        }
+        
+        response = requests.post(url, json=payload)
+        
+        if response.status_code == 200:
+            result = response.json()
+            verdict = result['candidates'][0]['content']['parts'][0]['text']
+            return {"final_verdict": verdict}
+        else:
+            error_msg = response.json().get('error', {}).get('message', 'Unknown error')
+            return {"final_verdict": f"⚠️ API Error: {error_msg}"}
     except Exception as e:
         return {"final_verdict": f"⚠️ Error generating verdict: {str(e)}. Please check your API configuration."}
 
