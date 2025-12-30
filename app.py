@@ -77,6 +77,22 @@ def extract_asin(url: str) -> tuple:
     except:
         return "B000000000", "amazon.com"
 
+def get_currency_info(domain: str) -> dict:
+    """Returns currency symbol and code based on Amazon domain."""
+    currency_map = {
+        "amazon.in": {"symbol": "₹", "code": "INR"},
+        "amazon.com": {"symbol": "$", "code": "USD"},
+        "amazon.co.uk": {"symbol": "£", "code": "GBP"},
+        "amazon.ca": {"symbol": "CA$", "code": "CAD"},
+        "amazon.de": {"symbol": "€", "code": "EUR"},
+        "amazon.fr": {"symbol": "€", "code": "EUR"},
+        "amazon.es": {"symbol": "€", "code": "EUR"},
+        "amazon.it": {"symbol": "€", "code": "EUR"},
+        "amazon.com.au": {"symbol": "AU$", "code": "AUD"},
+        "amazon.co.jp": {"symbol": "¥", "code": "JPY"},
+    }
+    return currency_map.get(domain, {"symbol": "$", "code": "USD"})
+
 def fetch_rainforest_product(asin: str, domain: str = "amazon.com"):
     """Calls Rainforest API for real-time Amazon pricing and specs."""
     params = {
@@ -150,6 +166,9 @@ def fetch_rainforest_product(asin: str, domain: str = "amazon.com"):
         # If both are 0, mark as unavailable
         product_status = "available" if is_available and current_price > 0 else "unavailable"
         
+        # Get currency info
+        currency = get_currency_info(domain)
+        
         return {
             "title": product.get("title", "Unknown Product"),
             "current_price": current_price,
@@ -158,6 +177,7 @@ def fetch_rainforest_product(asin: str, domain: str = "amazon.com"):
             "image": product.get("main_image", {}).get("link", ""),
             "availability": availability_msg,
             "status": product_status,
+            "currency": currency,
             "raw_data": product  # Keep for debugging
         }
     except Exception as e:
@@ -169,6 +189,7 @@ def fetch_rainforest_product(asin: str, domain: str = "amazon.com"):
             "image": "",
             "availability": "Error",
             "status": "error",
+            "currency": {"symbol": "$", "code": "USD"},
             "error": str(e)
         }
 
@@ -204,11 +225,13 @@ def strategist_node(state: AgentState):
         # Use gemini-2.5-flash (standard stable model with quota)
         url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
         
+        currency_symbol = state['product_data'].get('currency', {}).get('symbol', '$')
+        
         prompt = f"""
 Act as a Fiduciary Shopping Agent. 
 Product: {state['product_data']['title']}
-Current Price: ${state['product_data']['current_price']}
-MSRP/RRP: ${state['product_data']['rrp']}
+Current Price: {currency_symbol}{state['product_data']['current_price']}
+MSRP/RRP: {currency_symbol}{state['product_data']['rrp']}
 User Urgency: {state['urgency']}/10
 Web Sentiment: {state['sentiment_data']}
 
@@ -293,10 +316,13 @@ if st.button("🚀 Launch Sourcing Agent"):
                 if result['product_data'].get('status') == 'unavailable':
                     st.warning(f"⚠️ Product Status: {result['product_data'].get('availability', 'Currently unavailable')}")
                 
+                # Get currency symbol
+                currency_symbol = result['product_data'].get('currency', {}).get('symbol', '$')
+                
                 # Metric Cards
                 m1, m2 = st.columns(2)
-                m1.metric("Current Price", f"${result['product_data']['current_price']}" if result['product_data']['current_price'] > 0 else "N/A")
-                m2.metric("RRP/MSRP", f"${result['product_data']['rrp']}" if result['product_data']['rrp'] > 0 else "N/A")
+                m1.metric("Current Price", f"{currency_symbol}{result['product_data']['current_price']}" if result['product_data']['current_price'] > 0 else "N/A")
+                m2.metric("RRP/MSRP", f"{currency_symbol}{result['product_data']['rrp']}" if result['product_data']['rrp'] > 0 else "N/A")
                 
                 # Debug info
                 if result['product_data']['current_price'] == 0:
