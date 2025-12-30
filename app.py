@@ -293,41 +293,129 @@ aegis_engine = builder.compile()
 # --- STREAMLIT PRODUCTION UI ---
 st.set_page_config(page_title="Aegis-Buy Agent", page_icon="🛡️", layout="wide")
 
-st.title("🛡️ Aegis-Buy: Agentic AI Procurement")
-st.write("Ensuring you never buy at the peak. Powered by Google Gemini AI.")
+# Custom CSS for better styling
+st.markdown("""
+<style>
+    .main-header {
+        text-align: center;
+        padding: 1rem 0;
+        background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+        border-radius: 10px;
+        margin-bottom: 2rem;
+    }
+    .verdict-box {
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+    }
+    .verdict-buy {
+        background-color: #d4edda;
+        border-left: 5px solid #28a745;
+    }
+    .verdict-wait {
+        background-color: #fff3cd;
+        border-left: 5px solid #ffc107;
+    }
+    .verdict-watch {
+        background-color: #cce5ff;
+        border-left: 5px solid #007bff;
+    }
+</style>
+""", unsafe_allow_html=True)
+
+st.markdown('<div class="main-header"><h1 style="color: white; margin: 0;">🛡️ Aegis-Buy: Agentic AI Procurement</h1><p style="color: #e0e0e0; margin: 0.5rem 0 0 0;">Ensuring you never buy at the peak. Powered by Google Gemini AI.</p></div>', unsafe_allow_html=True)
+
+# Info banner
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("🤖 Agent Type", "Multi-Agent AI")
+with col2:
+    st.metric("🧠 Powered By", "Gemini 2.5 Flash")
+with col3:
+    st.metric("🌍 Global Coverage", "12+ Countries")
+
+st.divider()
 
 with st.sidebar:
     st.header("🛒 Mission Parameters")
     urgency = st.select_slider("Procurement Urgency", options=range(1,11), value=5)
-    st.info("High Urgency (8-10) prioritizes speed. Low Urgency (1-3) prioritizes the absolute floor price.")
+    st.info("**High Urgency (8-10):** Prioritizes speed\n\n**Low Urgency (1-3):** Prioritizes absolute floor price")
+    
+    st.divider()
+    st.subheader("📊 How It Works")
+    st.markdown("""
+    1. **🔍 Researcher Agent** - Fetches real-time prices & product data
+    2. **💭 Sentiment Agent** - Analyzes web reviews & social sentiment  
+    3. **🧠 Strategist Agent** - AI-powered purchase recommendation
+    """)
+    
+    st.divider()
+    st.caption("Built for Google for Startups - Scaler Showcase")
 
-target_url = st.text_input("Paste Amazon Product Link:", placeholder="https://www.amazon.com/dp/B0...")
+target_url = st.text_input("📦 Paste Amazon Product Link:", placeholder="https://www.amazon.com/dp/B0... or amazon.in, amazon.co.uk, etc.")
 
-if st.button("🚀 Launch Sourcing Agent"):
+if st.button("🚀 Launch Sourcing Agent", use_container_width=True):
     if not target_url:
         st.error("Please provide a product URL.")
     else:
+        # Progress tracking
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+        
+        status_text.text("🕵️ Researcher Agent: Extracting product data...")
+        progress_bar.progress(33)
+        
         with st.spinner("Agent 'Aegis' is researching price bands and social sentiment..."):
             # Execute the Graph
+            status_text.text("💭 Sentiment Agent: Analyzing web reviews...")
+            progress_bar.progress(66)
+            
             result = aegis_engine.invoke({"url": target_url, "urgency": urgency})
             
+            status_text.text("🧠 Strategist Agent: Generating fiduciary verdict...")
+            progress_bar.progress(100)
+            
             # Persist Result to Supabase
-            supabase.table("price_missions").insert({
-                "asin": result["asin"],
-                "verdict": result["final_verdict"],
-                "current_price": result["product_data"]["current_price"],
-                "urgency": urgency
-            }).execute()
+            try:
+                supabase.table("price_missions").insert({
+                    "asin": result["asin"],
+                    "verdict": result["final_verdict"],
+                    "current_price": result["product_data"]["current_price"],
+                    "urgency": urgency
+                }).execute()
+            except:
+                pass  # Silently fail if DB insert fails
+            
+            # Clear progress indicators
+            progress_bar.empty()
+            status_text.empty()
 
             # Display Output
+            st.success("✅ Analysis Complete!")
             st.divider()
+            
             col_img, col_info = st.columns([1, 2])
             
             with col_img:
-                st.image(result["product_data"]["image"], caption=result["product_data"]["title"])
+                if result["product_data"]["image"]:
+                    st.image(result["product_data"]["image"], use_container_width=True)
+                st.caption(result["product_data"]["title"])
+                st.caption(f"⭐ Rating: {result['product_data'].get('rating', 'N/A')}")
             
             with col_info:
-                st.subheader("Agent Fiduciary Verdict")
+                # Determine verdict type for styling
+                verdict_text = result["final_verdict"].upper()
+                if "BUY" in verdict_text:
+                    verdict_class = "verdict-buy"
+                    verdict_icon = "✅"
+                elif "WAIT" in verdict_text:
+                    verdict_class = "verdict-wait"
+                    verdict_icon = "⏸️"
+                else:
+                    verdict_class = "verdict-watch"
+                    verdict_icon = "👀"
+                
+                st.markdown(f'<div class="{verdict_class} verdict-box"><h3>{verdict_icon} Agent Fiduciary Verdict</h3></div>', unsafe_allow_html=True)
                 st.markdown(result["final_verdict"])
                 
                 # Show availability warning
