@@ -69,17 +69,69 @@ def fetch_rainforest_product(asin: str):
         'amazon_domain': 'amazon.com',
         'asin': asin
     }
-    response = requests.get('https://api.rainforestapi.com/request', params)
-    data = response.json()
-    product = data.get('product', {})
     
-    return {
-        "title": product.get("title", "Unknown Product"),
-        "current_price": product.get("buybox_winner", {}).get("price", {}).get("value", 0),
-        "rrp": product.get("variants", [{}])[0].get("rrp", {}).get("value", 0), # Simplified for MVP
-        "rating": product.get("rating", 0),
-        "image": product.get("main_image", {}).get("link", "")
-    }
+    try:
+        response = requests.get('https://api.rainforestapi.com/request', params, timeout=10)
+        data = response.json()
+        product = data.get('product', {})
+        
+        # Try multiple ways to get the price
+        current_price = 0
+        
+        # Method 1: Buybox winner price
+        if product.get("buybox_winner"):
+            buybox = product["buybox_winner"]
+            if buybox.get("price", {}).get("value"):
+                current_price = buybox["price"]["value"]
+            elif buybox.get("price", {}).get("raw"):
+                # Sometimes it's in raw format like "$99.99"
+                raw_price = buybox["price"]["raw"].replace("$", "").replace(",", "")
+                try:
+                    current_price = float(raw_price)
+                except:
+                    pass
+        
+        # Method 2: Main product price
+        if current_price == 0 and product.get("price"):
+            if isinstance(product["price"], dict):
+                current_price = product["price"].get("value", 0)
+            elif isinstance(product["price"], (int, float)):
+                current_price = product["price"]
+        
+        # Method 3: First offer price
+        if current_price == 0 and product.get("buybox_winner", {}).get("offers"):
+            offers = product["buybox_winner"]["offers"]
+            if offers and len(offers) > 0:
+                current_price = offers[0].get("price", {}).get("value", 0)
+        
+        # Get RRP/MSRP
+        rrp = 0
+        if product.get("list_price"):
+            rrp = product["list_price"].get("value", 0)
+        elif product.get("variants") and len(product["variants"]) > 0:
+            rrp = product["variants"][0].get("list_price", {}).get("value", 0)
+        
+        # If no RRP found, estimate it as 20% higher than current price
+        if rrp == 0 and current_price > 0:
+            rrp = current_price * 1.2
+        
+        return {
+            "title": product.get("title", "Unknown Product"),
+            "current_price": current_price,
+            "rrp": rrp,
+            "rating": product.get("rating", 0),
+            "image": product.get("main_image", {}).get("link", ""),
+            "raw_data": product  # Keep for debugging
+        }
+    except Exception as e:
+        return {
+            "title": "Error fetching product",
+            "current_price": 0,
+            "rrp": 0,
+            "rating": 0,
+            "image": "",
+            "error": str(e)
+        }
 
 def fetch_serp_sentiment(product_title: str):
     """Uses SerpApi to find Reddit/Tech forum consensus on the product."""
@@ -202,3 +254,8 @@ if st.button("🚀 Launch Sourcing Agent"):
                 m1, m2 = st.columns(2)
                 m1.metric("Current Price", f"${result['product_data']['current_price']}")
                 m2.metric("RRP/MSRP", f"${result['product_data']['rrp']}")
+                
+                # Debug info
+                if result['product_data']['current_price'] == 0:
+                    with st.expander("🔍 Debug: API Response"):
+                        st.json(result['product_data'].get('raw_data', {}))
