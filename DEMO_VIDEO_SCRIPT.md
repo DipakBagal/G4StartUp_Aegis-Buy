@@ -31,7 +31,7 @@ Traditional tools are **calculators**, not **advisors**."
 
 ## **[0:45-1:30] THE SOLUTION - DEMO (45 seconds)**
 
-**[Screen: Live Streamlit app at https://g4startup-aegis-buy.streamlit.app]**
+**[Screen: Live Streamlit app at https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app]**
 
 "Aegis-Buy is a **multi-agent AI system** powered by Google Gemini 2.5 Flash. Watch how it works:
 
@@ -107,7 +107,7 @@ The prototype already stores missions in Supabase for analytics."
 
 **[Screen: App URL + GitHub]**
 
-"Try it now: **https://g4startup-aegis-buy.streamlit.app**
+"Try it now: **https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app**
 
 Built with:
 - ✅ Google Gemini 2.5 Flash
@@ -158,7 +158,7 @@ Thank you for watching! I'd love your feedback."
 
 ## **SUBMISSION CHECKLIST**
 
-✅ **Live App URL**: https://g4startup-aegis-buy.streamlit.app  
+✅ **Live App URL**: https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app  
 ✅ **Demo Video**: 3 minutes max (record using script above)  
 ✅ **Golden Prompt**: Already documented in `GOLDEN_PROMPT.md`  
 ✅ **GitHub Repo**: https://github.com/DipakBagal/G4StartUp_Aegis-Buy

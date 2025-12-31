@@ -221,7 +221,7 @@ Assumptions:
 
 #### **CTA (2:45-3:00)**
 - Return to `10_key_statistics.png`
-- URL overlay: **g4startup-aegis-buy.streamlit.app**
+- URL overlay: **g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app**
 
 ---
 
@@ -296,7 +296,7 @@ Assumptions:
 Before recording:
 - [ ] All 10 visualizations generated in `demo_assets/` folder
 - [ ] Demo product URL ready (Amazon.in link)
-- [ ] App tested and working (https://g4startup-aegis-buy.streamlit.app)
+- [ ] App tested and working (https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app)
 - [ ] Statistics memorized (key numbers: $5.7T, 82%, 15-20%, ₹18,360)
 - [ ] Screen recording software tested (OBS/Loom)
 - [ ] Script practiced 2-3 times (target: 2:50 duration)
@@ -306,7 +306,7 @@ During recording:
 - [ ] Demonstrate live app with real product
 - [ ] Highlight color-coded verdicts
 - [ ] Emphasize 3-bullet justification
-- [ ] Display URL at end: g4startup-aegis-buy.streamlit.app
+- [ ] Display URL at end: g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app
 
 After recording:
 - [ ] Add text overlays for key stats

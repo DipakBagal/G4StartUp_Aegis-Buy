@@ -4,13 +4,13 @@
 
 ### 1. ✅ Live App URL
 **Status:** COMPLETE  
-**URL:** https://g4startup-aegis-buy.streamlit.app  
+**URL:** https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app  
 **Platform:** Streamlit Cloud  
 **Status:** Deployed and publicly accessible
 
 **What to Submit:**
 ```
-Live App URL: https://g4startup-aegis-buy.streamlit.app
+Live App URL: https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app
 ```
 
 ---
@@ -137,7 +137,7 @@ Aegis-Buy is a multi-agent AI system powered by Gemini that acts as a fiduciary 
 
 When you're ready to submit, you'll need:
 
-1. ✅ **Live App URL:** https://g4startup-aegis-buy.streamlit.app
+1. ✅ **Live App URL:** https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app
 2. ⏳ **Demo Video URL:** [Record and upload - see DEMO_VIDEO_SCRIPT.md]
 3. ✅ **Golden Prompt:** Available in GOLDEN_PROMPT.md or paste above
 

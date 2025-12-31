@@ -1,7 +1,7 @@
 # 🛡️ Aegis-Buy: Agentic AI Procurement Assistant
 
 > **🏆 Built for Google for Startups - Scaler Showcase**  
-> **🔗 Live Demo:** https://g4startup-aegis-buy.streamlit.app
+> **🔗 Live Demo:** https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app
 
 An intelligent multi-agent procurement system powered by Google's Gemini 2.5 Flash that helps you make informed purchasing decisions on Amazon products. Aegis-Buy analyzes pricing trends, web sentiment, and market conditions to provide fiduciary recommendations on whether to buy now or wait for better deals.
 

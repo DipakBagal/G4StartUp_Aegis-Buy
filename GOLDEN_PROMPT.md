@@ -112,7 +112,7 @@ This is the difference between a calculator and a trusted advisor.
 
 ## **Built for Google for Startups - Scaler Showcase**
 
-**Prototype URL:** https://g4startup-aegis-buy.streamlit.app
+**Prototype URL:** https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app
 
 **Problem Solved:** Buyers overpay because:
 - They don't know if it's the "right time" to buy

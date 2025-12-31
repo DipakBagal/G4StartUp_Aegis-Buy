@@ -87,11 +87,11 @@
 **Visual:** `10_key_statistics.png` (return to overview)
 
 **Display prominently:**
-- **Live App:** https://g4startup-aegis-buy.streamlit.app
+- **Live App:** https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app
 - **GitHub:** github.com/DipakBagal/G4StartUp_Aegis-Buy
 
 **Script Snippet:**  
-*"Try Aegis-Buy today at g4startup-aegis-buy.streamlit.app. Because you should never buy at the peak. Thank you!"*
+*"Try Aegis-Buy today at g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app. Because you should never buy at the peak. Thank you!"*
 
 ---
 
@@ -126,7 +126,7 @@ Remember to highlight during demo:
 **Before Starting:**
 - [ ] Open `demo_assets/` folder for quick access to PNGs
 - [ ] Have product URL ready (Amazon.in link)
-- [ ] Test app at https://g4startup-aegis-buy.streamlit.app
+- [ ] Test app at https://g4startupaegis-buy-63ncci879g9tn236eshtr6.streamlit.app
 - [ ] Set screen recording to 1080p
 - [ ] Close unnecessary tabs/applications
 - [ ] Enable "Do Not Disturb" mode
