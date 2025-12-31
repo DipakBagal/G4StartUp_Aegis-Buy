@@ -130,8 +130,8 @@ This project is part of the Google for Startups program.
 ## 🙏 Acknowledgments
 
 - Google for Startups for Gemini API access
-- Built as part of the SKY-UK initiative
-- Powered by Scalar technology
+- Built for the Google for Startups - Scaler contest
+- Powered by Google Gemini 2.5 Flash
 
 ## 📞 Support
 
